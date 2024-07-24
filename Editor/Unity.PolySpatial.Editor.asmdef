@@ -1,0 +1,39 @@
+{
+    "name": "Unity.PolySpatial.Extensions.Editor",
+    "rootNamespace": "Unity.PolySpatial.Extensions.Editor",
+    "references": [
+        "Unity.PolySpatial",
+        "Unity.InternalAPIEngineBridge.021",
+        "Unity.InternalAPIEditorBridge.021",
+        "FlatSharp.Editor",
+        "Unity.ScriptableBuildPipeline.Editor",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.PolySpatial.Core",
+        "Unity.PolySpatial.Extensions.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Unity.PolySpatial.Core.dll",
+        "Unity.InternalAPIEngineBridge.021.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.scriptablebuildpipeline",
+            "expression": "",
+            "define": "HAS_SCRIPTABLE_BUILDPIPELINE"
+        },
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "1.0.0",
+            "define": "ENABLE_URP"
+        }
+    ],
+    "noEngineReferences": false
+}

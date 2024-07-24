@@ -1,0 +1,29 @@
+{
+  "name": "Unity.PolySpatial.Extensions.Runtime",
+  "rootNamespace": "",
+  "references": [
+    "Unity.PolySpatial",
+    "Unity.PolySpatial.Core",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.PolySpatial.Analytics.Editor"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Unity.PolySpatial.Core.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.render-pipelines.core",
+      "expression": "17",
+      "define": "HAS_SRP_17_OR_NEWER"
+    }
+  ],
+  "noEngineReferences": false
+}
