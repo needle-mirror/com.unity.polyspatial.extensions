@@ -146,11 +146,11 @@ MonoBehaviour:
   m_LevelNames:
   - DepthReprojectionHeadTracked
   - FlatStereoscopicTransparent
-  - FlatSterescopicCurvedOpaque
+  - FlatStereoscopicCurvedOpaque
   - FlatStereoscopicHeadTracked
   - DepthReprojectionBounded
   - FlatStereoscopicTransparentBounded
-  - FlatSterescopicCurvedOpaqueBounded
+  - FlatStereoscopicCurvedOpaqueBounded
   - FlatStereoscopicBillboardBounded
 --- !u!1 &4469417905102363590
 GameObject:

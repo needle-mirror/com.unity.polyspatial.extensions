@@ -149,14 +149,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Dimensions: {x: 1, y: 1, z: 1}
+  m_ScaleWithWindow: 1
   m_IsUniformScale: 0
   m_OutputConfiguration: {fileID: 11400000, guid: 79a8416c81584498d9cde1e3e0466fcb, type: 2}
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
   OpenWindowOnLoad: 1
+  m_TargetDisplay: 0
   m_ShowVolumeCameraEventsFoldout: 0
   OnWindowEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnViewpointChanged:
     m_PersistentCalls:
       m_Calls: []
 --- !u!4 &356354045
@@ -719,7 +724,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1118813389188191750}
   m_Layer: 20
-  m_Name: Barriers
+  m_Name: Barriers-DisableTracking
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

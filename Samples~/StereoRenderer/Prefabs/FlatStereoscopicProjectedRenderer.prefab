@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4571662290082799911}
   - component: {fileID: 3599514246194993945}
   - component: {fileID: 8781104976057512054}
-  m_Layer: 12
+  m_Layer: 0
   m_Name: FlatStereoscopicProjectedRenderer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.284, z: 0.75}
-  m_LocalScale: {x: 2.2150483, y: 1.7769924, z: 2.2150483}
+  m_LocalScale: {x: 2.215048, y: 1.776992, z: 2.215048}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

@@ -69,7 +69,7 @@ namespace Unity.PolySpatial.Entities
 
         private NewEntityData m_newEntityData;
 
-        private ChangeListStructWritable<EmptyData> m_removedEntityChanges;
+        private NativeList<PolySpatialInstanceID> m_removedEntityIds;
 
         private NativeList<PolySpatialInstanceID> m_idBuffer;
         private NativeList<Vector3> m_positionBuffer;
@@ -80,7 +80,7 @@ namespace Unity.PolySpatial.Entities
 
         private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
         private ChangeListSerializedStructWritable<PolySpatialRenderData> m_materialMeshChanges;
-        private ChangeListStructWritable<EmptyData> m_materialMeshRemoved;
+        private NativeList<PolySpatialInstanceID> m_materialMeshRemoved;
 
         private static List<RenderMeshArray> m_renderMeshArraysBuffer;
         private static List<int> m_sharedIndicesBuffer;
@@ -154,7 +154,7 @@ namespace Unity.PolySpatial.Entities
 
             m_newEntityData = new NewEntityData(Allocator.Persistent);
 
-            m_removedEntityChanges = new ChangeListStructWritable<EmptyData>(Allocator.Persistent);
+            m_removedEntityIds = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
 
             m_idBuffer = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
             m_positionBuffer = new NativeList<Vector3>(Allocator.Persistent);
@@ -166,7 +166,7 @@ namespace Unity.PolySpatial.Entities
             m_materialMeshTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
             m_materialMeshTrackerMap.Initialize(1024);
             m_materialMeshChanges = new ChangeListSerializedStructWritable<PolySpatialRenderData>(Allocator.Persistent);
-            m_materialMeshRemoved = new ChangeListStructWritable<EmptyData>(Allocator.Persistent);
+            m_materialMeshRemoved = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
 
             m_renderMeshArraysBuffer = new List<RenderMeshArray>();
             m_sharedIndicesBuffer = new List<int>();
@@ -217,7 +217,7 @@ namespace Unity.PolySpatial.Entities
             {
                 ECB = entityCommandBuffer,
                 EntityTrackerMap = m_entityTrackerMap,
-                EntitiesChanges = m_removedEntityChanges
+                EntitiesChanges = m_removedEntityIds
             }.Schedule(m_removedEntitiesQuery, systemState.Dependency);
 
             systemState.Dependency = new HandleTransformUpdatesJob()
@@ -301,18 +301,18 @@ namespace Unity.PolySpatial.Entities
 
                 if (!m_materialMeshRemoved.IsEmpty)
                 {
-                    sim.OnMeshRenderersDestroyed(m_materialMeshRemoved);
+                    sim.OnMeshRenderersDestroyed(m_materialMeshRemoved.AsArray());
                 }
 
-                if (!m_removedEntityChanges.IsEmpty)
+                if (!m_removedEntityIds.IsEmpty)
                 {
-                    sim.OnGameObjectsDestroyed(m_removedEntityChanges);
+                    sim.OnGameObjectsDestroyed(m_removedEntityIds.AsArray());
                 }
             }
 
             m_newEntityData.Clear();
             m_entityChanges.Clear();
-            m_removedEntityChanges.Clear();
+            m_removedEntityIds.Clear();
             m_idBuffer.Clear();
             m_positionBuffer.Clear();
             m_rotationBuffer.Clear();
@@ -338,7 +338,7 @@ namespace Unity.PolySpatial.Entities
             m_entityTrackerMap.Dispose();
 
             m_newEntityData.Dispose();
-            m_removedEntityChanges.Dispose();
+            m_removedEntityIds.Dispose();
 
             m_idBuffer.Dispose();
             m_positionBuffer.Dispose();
@@ -526,7 +526,7 @@ namespace Unity.PolySpatial.Entities
         {
             public EntityCommandBuffer ECB;
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
-            public ChangeListStructWritable<EmptyData> EntitiesChanges;
+            public NativeList<PolySpatialInstanceID> EntitiesChanges;
 
             private void Execute(Entity e)
             {
@@ -535,7 +535,7 @@ namespace Unity.PolySpatial.Entities
                 Assert.IsFalse(EntityTrackerMap.IsIgnored(e));
                 var trackingData = EntityTrackerMap[e];
                 trackingData.MarkForDestruction();
-                EntitiesChanges.Add(trackingData, default);
+                EntitiesChanges.Add(trackingData.InstanceId);
                 EntityTrackerMap.Remove(e);
             }
         }
@@ -618,7 +618,7 @@ namespace Unity.PolySpatial.Entities
             [ReadOnly] public EntityTypeHandle EntityType;
 
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
-            public ChangeListStructWritable<EmptyData> Changes;
+            public NativeList<PolySpatialInstanceID> Changes;
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
                 var entities = chunk.GetNativeArray(EntityType);
@@ -631,7 +631,7 @@ namespace Unity.PolySpatial.Entities
                     Assert.IsFalse(TrackerMap.IsIgnored(e));
                     var trackingData = TrackerMap[e];
                     trackingData.MarkForDestruction();
-                    Changes.Add(trackingData, default);
+                    Changes.Add(trackingData.InstanceId);
                     TrackerMap.Remove(e);
                 }
             }

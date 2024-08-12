@@ -149,14 +149,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Dimensions: {x: 1, y: 1, z: 1}
+  m_ScaleWithWindow: 1
   m_IsUniformScale: 0
   m_OutputConfiguration: {fileID: 11400000, guid: 79a8416c81584498d9cde1e3e0466fcb, type: 2}
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 33
   OpenWindowOnLoad: 1
+  m_TargetDisplay: 0
   m_ShowVolumeCameraEventsFoldout: 0
   OnWindowEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnViewpointChanged:
     m_PersistentCalls:
       m_Calls: []
 --- !u!4 &356354045
@@ -698,7 +703,7 @@ PrefabInstance:
       objectReference: {fileID: 6413350155235424452}
     - target: {fileID: 2383255658455796835, guid: 333ac85b8a90545e09222aa6e92b0710, type: 3}
       propertyPath: m_Name
-      value: FlatStereoscopicRenderer
+      value: FlatStereoscopicTransparentRenderer
       objectReference: {fileID: 0}
     - target: {fileID: 4546456283533917245, guid: 333ac85b8a90545e09222aa6e92b0710, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1065,7 +1070,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1118813389188191750}
   m_Layer: 20
-  m_Name: Barriers
+  m_Name: Barriers-DisabledTracking
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1595,8 +1600,8 @@ SceneRoots:
   - {fileID: 156564127755554044}
   - {fileID: 632902905485490898}
   - {fileID: 1139671208}
-  - {fileID: 1118813389188191750}
   - {fileID: 600566698170306605}
+  - {fileID: 1118813389188191750}
   - {fileID: 1011618685}
   - {fileID: 6551240818837100836}
   - {fileID: 2032389031}
