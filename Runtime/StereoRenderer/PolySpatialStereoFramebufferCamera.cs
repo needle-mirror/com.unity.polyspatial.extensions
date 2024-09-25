@@ -99,8 +99,8 @@ namespace Unity.PolySpatial.Extensions
             if (!Application.isEditor)
                 return;
 
-            var leftHalfAngles = PolySpatialSettings.instance.DeviceDisplayProviderParameters.leftProjectionHalfAngles;
-            var rightHalfAngles = PolySpatialSettings.instance.DeviceDisplayProviderParameters.rightProjectionHalfAngles;
+            var leftHalfAngles = PolySpatialSettings.Instance.DeviceDisplayProviderParameters.leftProjectionHalfAngles;
+            var rightHalfAngles = PolySpatialSettings.Instance.DeviceDisplayProviderParameters.rightProjectionHalfAngles;
 
             var near = Camera.nearClipPlane;
             var far = Camera.farClipPlane;

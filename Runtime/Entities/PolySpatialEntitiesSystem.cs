@@ -393,7 +393,7 @@ namespace Unity.PolySpatial.Entities
             for (var index = 0; index < renderArrays.Count; ++index)
             {
                 var renderArray = renderArrays[index];
-                if (renderArray.Materials == null || renderArray.Meshes == null)
+                if (renderArray.MaterialReferences == null || renderArray.MeshReferences == null)
                     continue;
 
                 var sharedIndex = sharedIndices[index];
@@ -418,8 +418,8 @@ namespace Unity.PolySpatial.Entities
                 if (!update)
                     continue;
 
-                var materialCount = renderArray.Materials.Length;
-                var meshCount = renderArray.Meshes.Length;
+                var materialCount = renderArray.MaterialReferences.Length;
+                var meshCount = renderArray.MeshReferences.Length;
 
                 polyRenderMeshArray.Version = sharedVersion;
                 polyRenderMeshArray.hash128 = hash128;
@@ -428,7 +428,7 @@ namespace Unity.PolySpatial.Entities
 
                 for (var i = 0; i < materialCount; ++i)
                 {
-                    var material = renderArray.Materials[i];
+                    var material = renderArray.MaterialReferences[i];
                     Debug.Assert(material != null, "Material is null");
                     var id = PolySpatialCore.LocalAssetManager.Register((Material)material);
                     polyRenderMeshArray.Materials.Add(id);
@@ -436,7 +436,7 @@ namespace Unity.PolySpatial.Entities
 
                 for (var i = 0; i < meshCount; ++i)
                 {
-                    var mesh = renderArray.Meshes[i];
+                    var mesh = renderArray.MeshReferences[i];
                     var id = PolySpatialCore.LocalAssetManager.Register((Mesh)mesh);
                     polyRenderMeshArray.Meshes.Add(id);
                 }

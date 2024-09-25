@@ -107,7 +107,7 @@ namespace PolySpatial.Extensions.Editor
                {
                    siblings.Add(parent.transform.GetChild(i));
                }
-               
+
                // Make sure editor assembly can access runtime assembly
                siblings.Sort((a, b) => Utils.LexicalCompare(a.name, b.name));
 

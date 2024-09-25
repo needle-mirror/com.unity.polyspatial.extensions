@@ -59,8 +59,8 @@ namespace Unity.PolySpatial.Extensions
             if (!m_AnalyticsSent)
             {
                 m_AnalyticsSent = true;
-                var deviceDisplayDimensions = PolySpatialSettings.instance != null
-                    ? PolySpatialSettings.instance.DeviceDisplayProviderParameters.dimensions.ToString()
+                var deviceDisplayDimensions = PolySpatialSettings.Instance != null
+                    ? PolySpatialSettings.Instance.DeviceDisplayProviderParameters.dimensions.ToString()
                     : "";
                 PolySpatialAnalytics.Send(FeatureName.StereoRenderTarget, deviceDisplayDimensions);
             }
@@ -93,7 +93,7 @@ namespace Unity.PolySpatial.Extensions
         {
             m_GBufferPixelToVertexRatioProperty = serializedObject.FindProperty("m_GBufferPixelToVertexRatio");
 
-            m_SerializedSettings = new SerializedObject(PolySpatialSettings.instance);
+            m_SerializedSettings = new SerializedObject(PolySpatialSettings.Instance);
             m_DeviceDisplayProviderParametersProperty = m_SerializedSettings.FindProperty("m_DeviceDisplayProviderParameters");
         }
 

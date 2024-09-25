@@ -3,9 +3,18 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Unity.PolySpatial.Extensions
-{ 
+{
+    /// <summary>
+    /// Utility class for various helper methods.
+    /// </summary>
     public static partial class Utils
     {
+        /// <summary>
+        /// Compares two strings lexicographically.
+        /// </summary>
+        /// <param name="x">The first string.</param>
+        /// <param name="y">The second string.</param>
+        /// <returns>The result of the comparison.</returns>
         public static int LexicalCompare(string x, string y)
         {
             if (x == null || y == null)
