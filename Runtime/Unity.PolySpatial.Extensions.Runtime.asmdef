@@ -10,9 +10,7 @@
     "Unity.PolySpatial.Analytics.Editor"
   ],
   "includePlatforms": [],
-  "excludePlatforms": [
-      "Android"
-  ],
+  "excludePlatforms": [],
   "allowUnsafeCode": true,
   "overrideReferences": true,
   "precompiledReferences": [

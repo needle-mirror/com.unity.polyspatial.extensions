@@ -1,17 +1,26 @@
 {
-    "name": "Unity.PolySpatial.Extensions.Runtime.Tests",
+    "name": "Unity.PolySpatial.Extensions.RuntimeTests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
         "Unity.PolySpatial.Extensions.Runtime",
-        "Unity.PolySpatial"
+        "Unity.PolySpatial",
+        "Unity.Entities",
+        "Unity.Entities.Graphics",
+        "Unity.Mathematics",
+        "Unity.Transforms",
+        "Unity.Collections",
+        "Unity.Polyspatial.Entities",
+        "Unity.PolySpatial.Core",
+        "Unity.Burst"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "Unity.PolySpatial.Core.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

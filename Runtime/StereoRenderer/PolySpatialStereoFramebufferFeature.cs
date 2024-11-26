@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.Serialization;
 using UnityEngine.XR;
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
 using UnityEditor.PolySpatial.Analytics;
 #endif
 
@@ -24,7 +24,7 @@ namespace Unity.PolySpatial.Extensions
         PolySpatialStereoFramebufferPass m_BlitPass;
         PolySpatialStereoFramebufferCamera m_PendingStereoFramebufferCamera;
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
         [NonSerialized]
         bool m_AnalyticsSent;
 #endif
@@ -55,7 +55,7 @@ namespace Unity.PolySpatial.Extensions
             m_BlitPass.ValidateFramebufferData(component, camera, m_GBufferPixelToVertexRatio, ref renderingData);
             renderer.EnqueuePass(m_BlitPass);
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
             if (!m_AnalyticsSent)
             {
                 m_AnalyticsSent = true;

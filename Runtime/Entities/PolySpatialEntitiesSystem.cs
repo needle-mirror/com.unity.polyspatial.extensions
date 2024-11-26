@@ -10,7 +10,7 @@ using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
 using UnityEditor.PolySpatial.Analytics;
 #endif
 
@@ -93,7 +93,7 @@ namespace Unity.PolySpatial.Entities
         #region Events
         public void OnCreate(ref SystemState systemState)
         {
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
             if(Application.isPlaying)
                 PolySpatialAnalytics.Send(FeatureName.EntitiesComponentSystem, "Enabled");
 #endif

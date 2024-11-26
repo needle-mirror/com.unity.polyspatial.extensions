@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
 using UnityEditor.PolySpatial.Analytics;
 #endif
 
@@ -21,9 +21,9 @@ namespace Unity.PolySpatial.Extensions
     {
         [Tooltip("Camera this will display the output of.")]
         [SerializeField]
-        PolySpatialStereoFramebufferCamera m_StereoFramebufferCamera;
+        internal PolySpatialStereoFramebufferCamera m_StereoFramebufferCamera;
 
-        enum StereoFramebufferMode
+        internal enum StereoFramebufferMode
         {
             FlatStereoscopicStatic,
             FlatStereoscopicProjected,
@@ -34,7 +34,7 @@ namespace Unity.PolySpatial.Extensions
                  "FlatStereoscopicProjected dynamically places the stereo framebuffers on a flat surfaces using the camera projection " +
                  "DepthReprojection utilizes the depth buffer to reproject the stereo framebuffers in world space.")]
         [SerializeField]
-        StereoFramebufferMode m_Mode;
+        internal StereoFramebufferMode m_Mode;
 
         [Tooltip("Internally generate mesh to display reprojection.")]
         [SerializeField]
@@ -82,21 +82,26 @@ namespace Unity.PolySpatial.Extensions
         {
             m_Filter = GetComponent<MeshFilter>();
             m_Renderer = GetComponent<MeshRenderer>();
-            m_InitialLeftOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_LeftColorFramebuffer);
-            m_InitialRightOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_RightColorFramebuffer);
-            m_RuntimeMode = m_Mode;
             if (m_StereoFramebufferCamera != null)
             {
                 m_StereoFramebufferCamera.FramebufferUpdated.AddListener(FramebufferUpdated);
                 FramebufferUpdated(m_StereoFramebufferCamera);
             }
 
-#if UNITY_EDITOR && (ENABLE_CLOUD_SERVICES_ANALYTICS || UNITY_2023_2_OR_NEWER)
+#if UNITY_EDITOR && ENABLE_CLOUD_SERVICES_ANALYTICS
             if (Application.isPlaying && gameObject.scene.IsValid())
             {
                 PolySpatialAnalytics.Send(FeatureName.StereoRenderTargetMode, m_Mode.ToString());
             }
 #endif
+        }
+
+        void OnEnable()
+        {
+            ConfigureMaterialAndMesh();
+            m_InitialLeftOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_LeftColorFramebuffer);
+            m_InitialRightOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_RightColorFramebuffer);
+            m_RuntimeMode = m_Mode;
         }
 
         void OnDestroy()
@@ -109,6 +114,11 @@ namespace Unity.PolySpatial.Extensions
 
         void OnValidate()
         {
+            ConfigureMaterialAndMesh();
+        }
+
+        internal void ConfigureMaterialAndMesh()
+        {
             m_Filter ??= GetComponent<MeshFilter>();
             m_Renderer ??= GetComponent<MeshRenderer>();
 
@@ -116,13 +126,16 @@ namespace Unity.PolySpatial.Extensions
             {
                 case StereoFramebufferMode.FlatStereoscopicStatic:
                     // Let you update the focus while playing
-                    if (Application.isPlaying && m_StereoFramebufferCamera != null)
+                    if (Application.isPlaying && m_StereoFramebufferCamera != null && m_StereoFramebufferCamera.isActiveAndEnabled)
                         FramebufferUpdated(m_StereoFramebufferCamera);
 
                     if (m_Renderer.sharedMaterial == null ||
+                        m_Renderer.sharedMaterial.shader == null ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultDepthReprojectionShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicProjectedShader)
+                    {
                         m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultFlatStereoscopicShader));
+                    }
 
                     if (m_Filter.sharedMesh == null)
                         m_Filter.sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
@@ -130,9 +143,12 @@ namespace Unity.PolySpatial.Extensions
                     break;
                 case StereoFramebufferMode.FlatStereoscopicProjected:
                     if (m_Renderer.sharedMaterial == null ||
+                        m_Renderer.sharedMaterial.shader == null ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultDepthReprojectionShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicShader)
+                    {
                         m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultFlatStereoscopicProjectedShader));
+                    }
 
                     if (m_Filter.sharedMesh == null)
                         m_Filter.sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
@@ -141,9 +157,12 @@ namespace Unity.PolySpatial.Extensions
                 case StereoFramebufferMode.DepthReprojection:
 
                     if (m_Renderer.sharedMaterial == null ||
+                        m_Renderer.sharedMaterial.shader == null ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicProjectedShader)
+                    {
                         m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultDepthReprojectionShader));
+                    }
 
                     if (m_Filter.sharedMesh != null && m_Filter.sharedMesh.name == "Quad")
                         m_Filter.sharedMesh = null;
@@ -161,6 +180,9 @@ namespace Unity.PolySpatial.Extensions
         {
             m_Filter ??= GetComponent<MeshFilter>();
             m_Renderer ??= GetComponent<MeshRenderer>();
+
+            if (m_Renderer.sharedMaterial == null)
+                return;
 
             switch (m_RuntimeMode)
             {
@@ -265,8 +287,8 @@ namespace Unity.PolySpatial.Extensions
             var leftUVOffset = WorldPositionToUVOffset(leftView, leftProj, worldCenter);
             var rightUVOffset = WorldPositionToUVOffset(rightView, rightProj, worldCenter);
 
-            m_Renderer.material.SetTextureOffset(k_LeftColorFramebuffer, m_InitialLeftOffset + leftUVOffset);
-            m_Renderer.material.SetTextureOffset(k_RightColorFramebuffer, m_InitialRightOffset + rightUVOffset);
+            m_Renderer.sharedMaterial.SetTextureOffset(k_LeftColorFramebuffer, m_InitialLeftOffset + leftUVOffset);
+            m_Renderer.sharedMaterial.SetTextureOffset(k_RightColorFramebuffer, m_InitialRightOffset + rightUVOffset);
         }
 
         Matrix4x4 ProjMatrix(Camera.StereoscopicEye eye)
@@ -276,7 +298,7 @@ namespace Unity.PolySpatial.Extensions
                 : m_StereoFramebufferCamera.Camera.projectionMatrix, true);
         }
 
-        Matrix4x4 ViewProjectionMatrix(Camera.StereoscopicEye eye)
+        internal Matrix4x4 ViewProjectionMatrix(Camera.StereoscopicEye eye)
         {
             var view =  m_StereoFramebufferCamera.FramebufferMode != PolySpatialStereoFramebufferPass.FramebufferMode.Mono ?
                 m_StereoFramebufferCamera.Camera.GetStereoViewMatrix(eye) :
