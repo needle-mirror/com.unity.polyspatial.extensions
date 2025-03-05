@@ -49,7 +49,9 @@ namespace Unity.PolySpatial.Extensions
                 return;
 
             // This seems to need to be called every frame otherwise I sometimes got the occlusionMesh in the depth blit
+#if ENABLE_VR
             XRSettings.useOcclusionMesh = false;
+#endif
 
             m_BlitPass.ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth);
             m_BlitPass.ValidateFramebufferData(component, camera, m_GBufferPixelToVertexRatio, ref renderingData);

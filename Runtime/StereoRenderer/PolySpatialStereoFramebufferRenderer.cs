@@ -134,7 +134,10 @@ namespace Unity.PolySpatial.Extensions
                         m_Renderer.sharedMaterial.shader.name == k_DefaultDepthReprojectionShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicProjectedShader)
                     {
-                        m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultFlatStereoscopicShader));
+                        // In some contexts, like starting up from a clean checkout, Shader.Find will return null, so skip this step
+                        var shader = Shader.Find(k_DefaultFlatStereoscopicShader);
+                        if (shader != null)
+                            m_Renderer.sharedMaterial = new Material(shader);
                     }
 
                     if (m_Filter.sharedMesh == null)
@@ -147,7 +150,10 @@ namespace Unity.PolySpatial.Extensions
                         m_Renderer.sharedMaterial.shader.name == k_DefaultDepthReprojectionShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicShader)
                     {
-                        m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultFlatStereoscopicProjectedShader));
+                        // In some contexts, like starting up from a clean checkout, Shader.Find will return null, so skip this step
+                        var shader = Shader.Find(k_DefaultFlatStereoscopicProjectedShader);
+                        if (shader != null)
+                            m_Renderer.sharedMaterial = new Material(shader);
                     }
 
                     if (m_Filter.sharedMesh == null)
@@ -161,7 +167,10 @@ namespace Unity.PolySpatial.Extensions
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicShader ||
                         m_Renderer.sharedMaterial.shader.name == k_DefaultFlatStereoscopicProjectedShader)
                     {
-                        m_Renderer.sharedMaterial = new Material(Shader.Find(k_DefaultDepthReprojectionShader));
+                        // In some contexts, like starting up from a clean checkout, Shader.Find will return null, so skip this step
+                        var shader = Shader.Find(k_DefaultDepthReprojectionShader);
+                        if (shader != null)
+                            m_Renderer.sharedMaterial = new Material(shader);
                     }
 
                     if (m_Filter.sharedMesh != null && m_Filter.sharedMesh.name == "Quad")

@@ -93,7 +93,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         {
 #if UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX
             yield break;
-#endif
+#else
             var expectedGBufferDimensions = new Vector2Int(m_MainCamera.pixelWidth / k_DefaultGBufferPixelToVertexRatio,
                 m_MainCamera.pixelHeight / k_DefaultGBufferPixelToVertexRatio);
 
@@ -116,6 +116,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
             Assert.AreEqual(expectedGBufferDimensions.x, m_StereoCamera.LeftGBufferTexture.width);
             Assert.AreEqual(expectedGBufferDimensions.y, m_StereoCamera.LeftGBufferTexture.height);
 #endif
+#endif
         }
 
         // Tests that the material properties of the renderer associated with the StereoFrameBufferRenderer are as expected.
@@ -124,7 +125,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         {
 #if UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX
             yield break;
-#endif
+#else
             m_StereoCameraGO.SetActive(true);
 
             var frameBufferRendererGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -148,6 +149,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
 #endif
             Object.Destroy(frameBufferRenderer);
             GameObject.Destroy(frameBufferRendererGO);
+#endif
         }
 
         // Tests that the scale of the StereoFramebufferRenderer's transform is adjusted to the correct aspect ratio.
@@ -183,7 +185,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         {
 #if UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX
             yield break;
-#endif
+#else
             var frameBufferRendererGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
             frameBufferRendererGO.SetActive(false);
 
@@ -222,6 +224,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
 #endif
             Object.Destroy(frameBufferRenderer);
             GameObject.Destroy(frameBufferRendererGO);
+#endif
         }
 
         // Tests whether the StereoFramebufferRenderer's FlatStereoscopicProjected mode assigns the correct VP matrix to the material.

@@ -500,7 +500,6 @@ namespace Unity.PolySpatial.Entities
                 {
                     active = true,
                     layer = 0,
-                    visible = visible
                 };
 
 

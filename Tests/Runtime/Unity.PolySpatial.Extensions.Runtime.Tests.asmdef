@@ -1,5 +1,5 @@
 {
-    "name": "Unity.PolySpatial.Extensions.RuntimeTests",
+    "name": "Unity.PolySpatial.Extensions.Runtime.Tests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
