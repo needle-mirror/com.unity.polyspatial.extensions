@@ -8,6 +8,11 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
     [TestFixture]
     class ValidationTests
     {
+        /// <summary>
+        /// Override and return true if tests rely on GenericTracker to be enabled
+        /// </summary>
+        protected virtual bool IsGenericTrackerTest => false;
+
         [TestCase("Shader Graphs/FlatStereoscropicProjected")]
         [TestCase("Shader Graphs/DepthReprojection")]
         [TestCase("Shader Graphs/FlatStereoscropicStatic")]
@@ -31,12 +36,14 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         [SetUp]
         public void Setup()
         {
+            UtilsTests.AssertIgnore_CheckGenericTrackerEnabled(IsGenericTrackerTest);
             CreateStereoCamera();
         }
 
         [TearDown]
         public void TearDown()
         {
+            UtilsTests.AssertIgnore_CheckGenericTrackerEnabled(IsGenericTrackerTest);
             if (m_StereoCameraGO != null)
                 GameObject.DestroyImmediate(m_StereoCameraGO);
         }

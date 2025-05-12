@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Unity.PolySpatial.Internals;
 using UnityEngine;
 
 namespace Unity.PolySpatial.Extensions.RuntimeTests
@@ -24,6 +25,18 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         public void Utils_LexicalCompare(string a, string b, int expected)
         {
             Assert.AreEqual(expected, Utils.LexicalCompare(a, b));
+        }
+
+        /// <summary>
+        /// Will ignore if the test is for generic tracker, and the generic tracker is not enabled, and vice versa.
+        /// </summary>
+        public static void AssertIgnore_CheckGenericTrackerEnabled(bool IsGenericTrackerTest)
+        {
+            if (IsGenericTrackerTest && !PolySpatialUnityTracker.GenericTrackerEnabled)
+                Assert.Ignore("Generic tracker test ignored because generic tracking is not enabled.");
+
+            if (!IsGenericTrackerTest && PolySpatialUnityTracker.GenericTrackerEnabled)
+                Assert.Ignore("Non-generic tracker test ignored because generic tracking is enabled.");
         }
     }
 }

@@ -10,12 +10,13 @@ using UnityEngine;
 
 using Unity.PolySpatial.Extensions;
 
+// This file was present for the first release, even though we are not using it, we can't remove it without breaking API now.
 #if POLYSPATIAL_INTERNAL
 
 namespace PolySpatial.Extensions.Editor
 {
     /// Dummy editor class to make sure editor assembly works
-    public class DummyEditorWindow : EditorWindow
+    internal class DummyEditorWindow : EditorWindow
     {
         bool runRecursively = true;
         bool excludeLeaves = false;
@@ -25,7 +26,7 @@ namespace PolySpatial.Extensions.Editor
         private Vector2 scrollPosition;
 
         [MenuItem("Window/PolySpatial/Dummy Editor")]
-        public static void ShowWindow()
+        internal static void ShowWindow()
         {
             EditorWindow.GetWindow(typeof(DummyEditorWindow), false, "Dummy Editor");
         }

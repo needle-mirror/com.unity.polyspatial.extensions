@@ -49,7 +49,7 @@ namespace Unity.PolySpatial.Entities
     }
     internal static class PolySpatialEntitiesUtils
     {
-        public static PolySpatialInstanceID IdFor(Entity entity) => PolySpatialInstanceID.For((long)entity.Index << 32 | (long)entity.Version);
+        public static long IdFor(Entity entity) => (long)entity.Index << 32 | (long)entity.Version;
     }
 
     internal partial struct PolySpatialEntitiesSystem : ISystem
@@ -71,11 +71,11 @@ namespace Unity.PolySpatial.Entities
 
         private NativeList<PolySpatialInstanceID> m_removedEntityIds;
 
-        private NativeList<PolySpatialInstanceID> m_idBuffer;
+        private NativePolySpatialInstanceIDList m_idBuffer;
         private NativeList<Vector3> m_positionBuffer;
         private NativeList<Quaternion> m_rotationBuffer;
         private NativeList<Vector3> m_scaleBuffer;
-        private NativeList<PolySpatialInstanceID> m_parentBuffer;
+        private NativeList<long> m_parentBuffer;
         private ChangeListStructWritable<PolySpatialGameObjectData> m_entityChanges;
 
         private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
@@ -154,13 +154,13 @@ namespace Unity.PolySpatial.Entities
 
             m_newEntityData = new NewEntityData(Allocator.Persistent);
 
-            m_removedEntityIds = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
+            m_removedEntityIds = new(Allocator.Persistent);
 
-            m_idBuffer = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
+            m_idBuffer = new(Allocator.Persistent);
             m_positionBuffer = new NativeList<Vector3>(Allocator.Persistent);
             m_rotationBuffer = new NativeList<Quaternion>(Allocator.Persistent);
             m_scaleBuffer = new NativeList<Vector3>(Allocator.Persistent);
-            m_parentBuffer = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
+            m_parentBuffer = new(Allocator.Persistent);
             m_entityChanges = new ChangeListStructWritable<PolySpatialGameObjectData>(Allocator.Persistent);
 
             m_materialMeshTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
@@ -222,11 +222,11 @@ namespace Unity.PolySpatial.Entities
 
             systemState.Dependency = new HandleTransformUpdatesJob()
             {
-                IdBuffer = m_idBuffer.AsArray(),
+                IdBuffer = m_idBuffer,
                 PositionBuffer = m_positionBuffer.AsArray(),
                 RotationBuffer = m_rotationBuffer.AsArray(),
                 ScaleBuffer = m_scaleBuffer.AsArray(),
-                ParentBuffer = m_parentBuffer.AsArray()
+                ParentBuffer = m_parentBuffer.AsArray(),
             }.ScheduleParallel(m_updatedTransformsQuery, systemState.Dependency);
 
             systemState.Dependency = new HandleNewMaterialMeshInfosJob()
@@ -275,7 +275,7 @@ namespace Unity.PolySpatial.Entities
                 if (!m_newEntityData.ids.IsEmpty)
                 {
                     sim.AddEntitiesWithTransforms(
-                        m_newEntityData.ids.AsArray(),
+                        m_newEntityData.ids.AsPolySpatialInstanceIDSpan(),
                         m_newEntityData.parentIds.AsArray(),
                         m_newEntityData.positions.AsArray(),
                         m_newEntityData.rotations.AsArray(),
@@ -290,8 +290,8 @@ namespace Unity.PolySpatial.Entities
 
                 if (!m_idBuffer.IsEmpty)
                 {
-                    sim.OnTransformsChanged(m_idBuffer.AsArray(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
-                    sim.OnHierarchyChanged(m_idBuffer.AsArray(), m_parentBuffer.AsArray());
+                    sim.OnTransformsChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
+                    sim.OnHierarchyChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_parentBuffer.AsArray());
                 }
 
                 if (!m_materialMeshChanges.IsEmpty)
@@ -495,7 +495,7 @@ namespace Unity.PolySpatial.Entities
                 Assert.IsFalse(EntityTrackerMap.IsIgnored(e));
 
                 var trackingData = new EntityTrackingData<PolySpatialGameObjectData>();
-                trackingData.Initialize(PolySpatialEntitiesUtils.IdFor(e), e);
+                trackingData.Initialize(PolySpatialInstanceID.For(PolySpatialEntitiesUtils.IdFor(e)), e);
                 trackingData.customData = new PolySpatialGameObjectData
                 {
                     active = true,
@@ -503,8 +503,8 @@ namespace Unity.PolySpatial.Entities
                 };
 
 
-                NewEntityData.ids.Add(trackingData.InstanceId);
-                NewEntityData.parentIds.Add(PolySpatialInstanceID.None);
+                NewEntityData.ids.Add(trackingData.InstanceId.id);
+                NewEntityData.parentIds.Add(PolySpatialInstanceID.None.id);
                 NewEntityData.positions.Add(ltw.Position);
                 NewEntityData.rotations.Add(ltw.Rotation);
                 NewEntityData.scales.Add(ltw.Value.Scale());
@@ -541,11 +541,11 @@ namespace Unity.PolySpatial.Entities
 
         private partial struct HandleTransformUpdatesJob : IJobEntity
         {
-            public NativeArray<PolySpatialInstanceID> IdBuffer;
+            public NativePolySpatialInstanceIDList IdBuffer;
             public NativeArray<Vector3> PositionBuffer;
             public NativeArray<Quaternion> RotationBuffer;
             public NativeArray<Vector3> ScaleBuffer;
-            public NativeArray<PolySpatialInstanceID> ParentBuffer;
+            public NativeArray<long> ParentBuffer;
             private void Execute([EntityIndexInQuery] int entityIndex, in Entity e, [ReadOnly] in LocalToWorld ltw)
             {
                 var id = PolySpatialEntitiesUtils.IdFor(e);
@@ -554,7 +554,7 @@ namespace Unity.PolySpatial.Entities
                 PositionBuffer[entityIndex] = mat.Translation();
                 RotationBuffer[entityIndex] = mat.Rotation();
                 ScaleBuffer[entityIndex] = mat.Scale();
-                ParentBuffer[entityIndex] = PolySpatialInstanceID.None;
+                ParentBuffer[entityIndex] = PolySpatialInstanceID.None.id;
             }
         }
 
@@ -588,7 +588,7 @@ namespace Unity.PolySpatial.Entities
                     ECB.AddComponent<TrackedMaterialMeshInfo>(e);
                     Assert.IsFalse(TrackerMap.IsIgnored(e));
                     if(!TrackerMap.TryGetValueOrDefault(e, out var trackingData))
-                        trackingData.Initialize(PolySpatialEntitiesUtils.IdFor(e), e);
+                        trackingData.Initialize(PolySpatialInstanceID.For(PolySpatialEntitiesUtils.IdFor(e)), e);
                     var mmi = mmis[i];
                     trackingData.customData.meshId = polyRenderMeshArray.GetMeshID(mmi);
 
@@ -603,7 +603,7 @@ namespace Unity.PolySpatial.Entities
                     {
                         meshId = trackingData.customData.meshId,
                         renderingLayerMask = 1,
-                        materialIds = PolySpatialUtils.GetNativeArrayForBuffer<PolySpatialAssetID>(
+                        materialIds = PolySpatialUtils.GetTempNativeArrayForBuffer<PolySpatialAssetID>(
                             UnsafeUtility.AddressOf(ref trackingData.customData.materials.materialIds.ElementAt(0)),
                             trackingData.customData.materials.materialIds.Length)
                     });
@@ -664,8 +664,8 @@ namespace Unity.PolySpatial.Entities
         {
             public NewEntityData(Allocator allocator)
             {
-                ids = new NativeList<PolySpatialInstanceID>(allocator);
-                parentIds = new NativeList<PolySpatialInstanceID>(allocator);
+                ids = new(allocator);
+                parentIds = new(allocator);
                 positions = new NativeList<Vector3>(allocator);
                 rotations = new NativeList<Quaternion>(allocator);
                 scales = new NativeList<Vector3>(allocator);
@@ -692,8 +692,8 @@ namespace Unity.PolySpatial.Entities
                 data.Clear();
             }
 
-            public NativeList<PolySpatialInstanceID> ids;
-            public NativeList<PolySpatialInstanceID> parentIds;
+            public NativePolySpatialInstanceIDList ids;
+            public NativeList<long> parentIds;
             public NativeList<Vector3> positions;
             public NativeList<Quaternion> rotations;
             public NativeList<Vector3> scales;

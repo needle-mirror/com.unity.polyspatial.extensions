@@ -12,7 +12,8 @@
         "Unity.Collections",
         "Unity.Polyspatial.Entities",
         "Unity.PolySpatial.Core",
-        "Unity.Burst"
+        "Unity.Burst",
+        "Unity.PolySpatial.FunctionalTests.Runtime.Tests"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

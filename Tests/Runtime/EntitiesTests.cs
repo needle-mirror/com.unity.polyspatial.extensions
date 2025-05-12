@@ -133,7 +133,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
             for (var i = 0; i < entityCount; i++)
             {
                 Debug.Log(spawnedEntities[i].Version);
-                Assert.IsTrue(PolySpatialEntitiesUtils.IdFor(spawnedEntities[i]) != PolySpatialInstanceID.None);
+                Assert.IsTrue(PolySpatialEntitiesUtils.IdFor(spawnedEntities[i]) != PolySpatialInstanceID.None.id);
             }
 
             var destroyJob = new DestroyEntitiesJob
@@ -165,4 +165,3 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         }
     }
 }
-
