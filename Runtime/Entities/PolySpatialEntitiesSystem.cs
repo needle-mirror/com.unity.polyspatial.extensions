@@ -179,6 +179,10 @@ namespace Unity.PolySpatial.Entities
 
         public void OnUpdate(ref SystemState systemState)
         {
+            var sim = PolySpatialCore.UnitySimulation;
+            if (sim == null || sim.SessionState != SessionState.Running)
+                return;
+
             if (PolySpatialCore.LocalAssetManager == null)
                 return;
 
@@ -222,7 +226,7 @@ namespace Unity.PolySpatial.Entities
 
             systemState.Dependency = new HandleTransformUpdatesJob()
             {
-                IdBuffer = m_idBuffer,
+                IdBuffer = m_idBuffer.GetIDArray(),
                 PositionBuffer = m_positionBuffer.AsArray(),
                 RotationBuffer = m_rotationBuffer.AsArray(),
                 ScaleBuffer = m_scaleBuffer.AsArray(),
@@ -269,45 +273,43 @@ namespace Unity.PolySpatial.Entities
             entityCommandBuffer.Playback(systemState.EntityManager);
             entityCommandBuffer.Dispose();
 
-            var sim = PolySpatialCore.UnitySimulation;
-            if (sim != null)
+            // TODO [LXR-4870]: Send these commands during PolySpatialUnitySimulation.Update() so that they are sent
+            // between the BeginFrame and EndFrame commands.
+            if (!m_newEntityData.ids.IsEmpty)
             {
-                if (!m_newEntityData.ids.IsEmpty)
-                {
-                    sim.AddEntitiesWithTransforms(
-                        m_newEntityData.ids.AsPolySpatialInstanceIDSpan(),
-                        m_newEntityData.parentIds.AsArray(),
-                        m_newEntityData.positions.AsArray(),
-                        m_newEntityData.rotations.AsArray(),
-                        m_newEntityData.scales.AsArray(),
-                        m_newEntityData.data.AsArray());
-                }
+                sim.AddEntitiesWithTransforms(
+                    m_newEntityData.ids.AsPolySpatialInstanceIDSpan(),
+                    m_newEntityData.parentIds.AsArray(),
+                    m_newEntityData.positions.AsArray(),
+                    m_newEntityData.rotations.AsArray(),
+                    m_newEntityData.scales.AsArray(),
+                    m_newEntityData.data.AsArray());
+            }
 
-                if (!m_entityChanges.IsEmpty)
-                {
-                    sim.OnGameObjectsModified(m_entityChanges);
-                }
+            if (!m_entityChanges.IsEmpty)
+            {
+                sim.OnGameObjectsModified(m_entityChanges);
+            }
 
-                if (!m_idBuffer.IsEmpty)
-                {
-                    sim.OnTransformsChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
-                    sim.OnHierarchyChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_parentBuffer.AsArray());
-                }
+            if (!m_idBuffer.IsEmpty)
+            {
+                sim.OnTransformsChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
+                sim.OnHierarchyChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_parentBuffer.AsArray());
+            }
 
-                if (!m_materialMeshChanges.IsEmpty)
-                {
-                    sim.OnMeshRenderersCreatedOrUpdated(m_materialMeshChanges);
-                }
+            if (!m_materialMeshChanges.IsEmpty)
+            {
+                sim.OnMeshRenderersCreatedOrUpdated(m_materialMeshChanges);
+            }
 
-                if (!m_materialMeshRemoved.IsEmpty)
-                {
-                    sim.OnMeshRenderersDestroyed(m_materialMeshRemoved.AsArray());
-                }
+            if (!m_materialMeshRemoved.IsEmpty)
+            {
+                sim.OnMeshRenderersDestroyed(m_materialMeshRemoved.AsArray());
+            }
 
-                if (!m_removedEntityIds.IsEmpty)
-                {
-                    sim.OnGameObjectsDestroyed(m_removedEntityIds.AsArray());
-                }
+            if (!m_removedEntityIds.IsEmpty)
+            {
+                sim.OnGameObjectsDestroyed(m_removedEntityIds.AsArray());
             }
 
             m_newEntityData.Clear();
@@ -541,7 +543,7 @@ namespace Unity.PolySpatial.Entities
 
         private partial struct HandleTransformUpdatesJob : IJobEntity
         {
-            public NativePolySpatialInstanceIDList IdBuffer;
+            public NativeArray<long> IdBuffer;
             public NativeArray<Vector3> PositionBuffer;
             public NativeArray<Quaternion> RotationBuffer;
             public NativeArray<Vector3> ScaleBuffer;

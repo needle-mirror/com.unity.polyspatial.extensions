@@ -71,7 +71,7 @@ namespace Unity.PolySpatial.Extensions
 
         bool ShouldRenderCamera(Camera camera)
         {
-            return camera.isActiveAndEnabled && camera.cameraType == CameraType.Game && camera.gameObject.layer != PolySpatialUnityBackend.PolySpatialLayer;
+            return camera.isActiveAndEnabled && camera.cameraType == CameraType.Game && camera.gameObject.layer != PolySpatialLayerUtils.BackingLayer;
         }
 
         protected override void Dispose(bool disposing)

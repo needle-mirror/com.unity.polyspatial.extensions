@@ -229,13 +229,13 @@ namespace Unity.PolySpatial.Extensions
                     if (!m_StereoFramebufferCamera.GenerateGBuffer)
                         Logging.LogError($"{name} is trying to use depth reprojection on {m_StereoFramebufferCamera.name} which does not have GenerateGBuffer enabled.");
 
+                    m_Renderer.material.SetTexture(k_LeftDepthFramebuffer, stereoFramebufferCamera.LeftGBufferTexture);
+                    m_Renderer.material.SetTexture(k_RightDepthFramebuffer, stereoFramebufferCamera.RightGBufferTexture);
                     break;
             }
 
             m_Renderer.material.SetTexture(k_LeftColorFramebuffer, stereoFramebufferCamera.LeftColorTexture);
-            m_Renderer.material.SetTexture(k_LeftDepthFramebuffer, stereoFramebufferCamera.LeftGBufferTexture);
             m_Renderer.material.SetTexture(k_RightColorFramebuffer, stereoFramebufferCamera.RightColorTexture);
-            m_Renderer.material.SetTexture(k_RightDepthFramebuffer, stereoFramebufferCamera.RightGBufferTexture);
             m_StereoFramebufferCamera = stereoFramebufferCamera;
         }
 
