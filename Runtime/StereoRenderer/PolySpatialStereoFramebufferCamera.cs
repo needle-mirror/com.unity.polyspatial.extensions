@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering.Universal;
@@ -49,6 +51,23 @@ namespace Unity.PolySpatial.Extensions
                 Logging.LogWarning($"StereoRenderer only supported on URP. Disabling StereoFramebuffer on {m_Camera}.");
                 enabled = false;
             }
+
+            var urpRenderer = urpData.scriptableRenderer;
+            var rendererFeaturesProperty = typeof(ScriptableRenderer).GetProperty("rendererFeatures", BindingFlags.NonPublic | BindingFlags.Instance);
+            var urpFeatures = rendererFeaturesProperty?.GetValue(urpRenderer) as List<ScriptableRendererFeature>;
+            if (urpFeatures == null)
+            {
+                Logging.LogWarning("StereoRenderer couldn't find any RendererFeatures?");
+                return;
+            }
+
+            foreach (var urpFeature in urpFeatures)
+            {
+                if (urpFeature.GetType() == typeof(PolySpatialStereoFramebufferFeature))
+                    return;
+            }
+
+            Logging.LogWarning($"PolySpatialStereoFramebufferCamera on '{gameObject.name}' requires PolySpatialStereoFramebufferFeature to be added to the UniversalRendererData used by its Camera. StereoRenderer will not display until this is resolved." );
         }
 
         void Update()

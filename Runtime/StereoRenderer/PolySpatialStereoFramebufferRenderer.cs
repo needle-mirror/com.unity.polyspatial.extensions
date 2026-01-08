@@ -77,13 +77,34 @@ namespace Unity.PolySpatial.Extensions
         Vector2 m_InitialLeftOffset;
         Vector2 m_InitialRightOffset;
 
-
         void Awake()
         {
             m_Filter = GetComponent<MeshFilter>();
             m_Renderer = GetComponent<MeshRenderer>();
+
+            ConfigureMaterialAndMesh();
+            m_InitialLeftOffset = m_Renderer.material.GetTextureOffset(k_LeftColorFramebuffer);
+            m_InitialRightOffset = m_Renderer.material.GetTextureOffset(k_RightColorFramebuffer);
+            m_RuntimeMode = m_Mode;
+
             if (m_StereoFramebufferCamera != null)
             {
+                // This is a horrible workaround to deal with the few frames of pink appearing on
+                // the mesh in RK when it submits the new mesh and the new shadergraph simultaneously
+                // and is waiting for RK to update with the actual shader.
+                var initialScale = transform.localScale;
+                async void InitialScale(PolySpatialStereoFramebufferCamera stereoFramebufferCamera)
+                {
+                    stereoFramebufferCamera.FramebufferUpdated.RemoveListener(InitialScale);
+                    await Awaitable.WaitForSecondsAsync(0.1f);
+
+                    // This object may have been destroyed in the time between adding this callback and now
+                    if (this != null)
+                        transform.localScale = initialScale;
+                }
+                transform.localScale = Vector3.zero;
+                m_StereoFramebufferCamera.FramebufferUpdated.AddListener(InitialScale);
+
                 m_StereoFramebufferCamera.FramebufferUpdated.AddListener(FramebufferUpdated);
                 FramebufferUpdated(m_StereoFramebufferCamera);
             }
@@ -94,14 +115,6 @@ namespace Unity.PolySpatial.Extensions
                 PolySpatialAnalytics.Send(FeatureName.StereoRenderTargetMode, m_Mode.ToString());
             }
 #endif
-        }
-
-        void OnEnable()
-        {
-            ConfigureMaterialAndMesh();
-            m_InitialLeftOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_LeftColorFramebuffer);
-            m_InitialRightOffset = m_Renderer.sharedMaterial.GetTextureOffset(k_RightColorFramebuffer);
-            m_RuntimeMode = m_Mode;
         }
 
         void OnDestroy()
