@@ -8,9 +8,6 @@
     "excludePlatforms": [],
     "allowUnsafeCode": true,
     "overrideReferences": true,
-    "precompiledReferences": [
-        "Unity.PolySpatial.Core.dll"
-    ],
     "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],

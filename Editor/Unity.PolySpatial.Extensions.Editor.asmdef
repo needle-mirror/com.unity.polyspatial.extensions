@@ -18,7 +18,6 @@
     "allowUnsafeCode": true,
     "overrideReferences": true,
     "precompiledReferences": [
-        "Unity.PolySpatial.Core.dll",
         "Unity.InternalAPIEngineBridge.021.dll"
     ],
     "autoReferenced": true,

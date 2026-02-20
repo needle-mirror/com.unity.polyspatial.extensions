@@ -12,36 +12,45 @@ namespace Unity.PolySpatial.Entities
     internal struct ChangeListUnmanagedEnumerator<TEngineData> : IEnumerator<EngineAndObjectData<TEngineData>>
         where TEngineData : unmanaged
     {
-        private NativeArray<byte> m_array;
-        private int m_index;
-        private int m_length;
+        static readonly int k_Stride = PolySpatialUtils.AlignSize(UnsafeUtility.SizeOf<EngineAndObjectData<TEngineData>>());
+
+        NativeArray<byte> m_Array;
+        int m_ByteOffset;
+        readonly int m_Length;
 
         public ChangeListUnmanagedEnumerator(NativeArray<byte> array, int length)
         {
-            m_array = array;
-            m_index = -1;
-            m_length = length;
+            m_Array = array;
+            m_Length = length;
+
+            // IEnumerator internal "cursor" starts at a position before the collection's first element
+            m_ByteOffset = -k_Stride;
         }
 
-        public void Dispose() { }
+        public readonly void Dispose() { }
 
-        public unsafe bool MoveNext() => ++m_index * sizeof(EngineAndObjectData<TEngineData>) < m_length;
+        public bool MoveNext()
+        {
+            m_ByteOffset += k_Stride;
+            return m_ByteOffset < m_Length;
+        }
 
-        public void Reset() => m_index = -1;
+        public void Reset() => m_ByteOffset = -k_Stride;
 
-        public unsafe EngineAndObjectData<TEngineData>* UnsafeCurrentPointer => (EngineAndObjectData<TEngineData>*)m_array.GetUnsafePtr() + m_index;
+        public readonly unsafe EngineAndObjectData<TEngineData>* UnsafeCurrentPointer =>
+            (EngineAndObjectData<TEngineData>*)((byte*)m_Array.GetUnsafePtr() + m_ByteOffset);
 
-        public unsafe EngineAndObjectData<TEngineData> Current => *UnsafeCurrentPointer;
+        public readonly unsafe EngineAndObjectData<TEngineData> Current => *UnsafeCurrentPointer;
 
-        object IEnumerator.Current => Current;
+        readonly object IEnumerator.Current => Current;
     }
 
     internal struct ChangeListManagedEnumerator<TEngineData> : IEnumerator<EngineAndObjectData<TEngineData>>
         where TEngineData : class, IFlatBufferSerializable<TEngineData>, new()
     {
-        private NativeArray<byte> m_Array;
-        private int m_Index;
-        private int m_Length;
+        NativeArray<byte> m_Array;
+        int m_Index;
+        int m_Length;
 
         public ChangeListManagedEnumerator(NativeArray<byte> array, int length)
         {
@@ -90,58 +99,53 @@ namespace Unity.PolySpatial.Entities
 
         object IEnumerator.Current => Current;
 
-        unsafe byte* CurrentBasePointer => (byte*)m_Array.GetUnsafePtr() + m_Index;
+        readonly unsafe byte* CurrentBasePointer => (byte*)m_Array.GetUnsafePtr() + m_Index;
 
-        public unsafe PolySpatialChangeListEntityData* UnsafeCurrentEntityDataPointer =>
+        public readonly unsafe PolySpatialChangeListEntityData* UnsafeCurrentEntityDataPointer =>
             (PolySpatialChangeListEntityData*)(CurrentBasePointer + PolySpatialUtils.PaddedIntSize);
 
-        public unsafe int UnsafeCurrentDataSize =>
+        public readonly unsafe int UnsafeCurrentDataSize =>
             (*(int*)CurrentBasePointer) - PolySpatialUtils.PaddedIntSize - sizeof(PolySpatialChangeListEntityData);
 
-        public unsafe byte* UnsafeCurrentDataPointer => (byte*)(UnsafeCurrentEntityDataPointer + 1);
+        public readonly unsafe byte* UnsafeCurrentDataPointer => (byte*)(UnsafeCurrentEntityDataPointer + 1);
 
     }
 
-    internal struct ChangeListStruct<TEngineData> : IChangeList<TEngineData>
-        where TEngineData : unmanaged
-    {
-        public NativeArray<byte> RawData => m_data;
-        private NativeArray<byte> m_data;
-
-        public bool IsEmpty => m_data.Length == 0;
-
-        public ChangeListStruct(NativeArray<byte> data) => m_data = data;
-
-        public IEnumerator<EngineAndObjectData<TEngineData>> GetEnumerator() => new ChangeListUnmanagedEnumerator<TEngineData>(m_data, m_data.Length);
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
-    // Follows the code from com.unity.polyspatial/Runtime/Trackers/ChangeList.cs but implemented as a struct so it can be used in Burst jobs
-    // All pointer/offset math should be the same as in ChangeList.cs
+    /// <summary>
+    /// <see cref="ChangeList{TEngineData}.Writable"/> implemented as a struct so it can be used in Burst jobs
+    /// </summary>
     internal struct ChangeListStructWritable<TEngineData> : IChangeListWritable<TEngineData>
         where TEngineData : unmanaged
     {
-        public NativeList<byte> m_data;
-        public void Clear() => m_data.Clear();
+        static readonly int k_ElementSize = UnsafeUtility.SizeOf<EngineAndObjectData<TEngineData>>();
+        static readonly int k_Stride = PolySpatialUtils.AlignSize(k_ElementSize);
 
-        public NativeArray<byte> RawData => m_data.AsArray();
+        NativeList<byte> m_Data;
 
-        public bool IsEmpty => m_data.Length == 0;
+        public void Clear() => m_Data.Clear();
 
-        public IEnumerator<EngineAndObjectData<TEngineData>> GetEnumerator() => new ChangeListUnmanagedEnumerator<TEngineData>(m_data.AsArray(), m_data.Length);
+        public NativeArray<byte> RawData => m_Data.AsArray();
+
+        public readonly bool IsEmpty => m_Data.Length == 0;
+
+        public readonly int Count => m_Data.Length / k_ElementSize;
+
+        public IEnumerator<EngineAndObjectData<TEngineData>> GetEnumerator() =>
+            new ChangeListUnmanagedEnumerator<TEngineData>(m_Data.AsArray(), m_Data.Length);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public void Dispose() => m_data.Dispose();
+        public void Dispose() => m_Data.Dispose();
 
-        public ChangeListStructWritable(AllocatorManager.AllocatorHandle allocatorHandle) => m_data = new NativeList<byte>(allocatorHandle);
+        public ChangeListStructWritable(AllocatorManager.AllocatorHandle allocatorHandle) =>
+            m_Data = new NativeList<byte>(allocatorHandle);
 
         public unsafe void Add<TTrackingData>(TTrackingData trackingData, TEngineData element)
             where TTrackingData : ITrackingData
         {
-            m_data.Length += sizeof(EngineAndObjectData<TEngineData>);
-            var ptr = m_data.GetUnsafePtr() + m_data.Length - sizeof(EngineAndObjectData<TEngineData>);
+            var bufferStart = m_Data.Length;
+            m_Data.Length += k_Stride;
+            var ptr = m_Data.GetUnsafePtr() + bufferStart;
             *(EngineAndObjectData<TEngineData>*)ptr = new EngineAndObjectData<TEngineData>
             {
                 objectData = new()
@@ -154,19 +158,22 @@ namespace Unity.PolySpatial.Entities
         }
     }
 
-    // Follows the code from com.unity.polyspatial/Runtime/Trackers/ChangeList.cs but implemented as a struct so it can be used in Burst jobs
-    // All pointer/offset math should be the same as in ChangeList.cs
+    /// <summary>
+    /// <see cref="ChangeListSerialized{TEngineData}.Writable"/> implemented as a struct so it can be used in Burst jobs
+    /// </summary>
     internal struct ChangeListSerializedStructWritable<TEngineData> : IChangeListWritable<TEngineData>
         where TEngineData : class, IFlatBufferSerializable<TEngineData>, new()
     {
-        public NativeArray<byte> RawData => m_data.AsArray();
-        private NativeList<byte> m_data;
+        public NativeArray<byte> RawData => m_Data.AsArray();
+        NativeList<byte> m_Data;
 
-        public bool IsEmpty => m_data.Length == 0;
+        public readonly bool IsEmpty => m_Data.Length == 0;
 
-        public ChangeListSerializedStructWritable(AllocatorManager.AllocatorHandle allocatorHandle) => m_data = new(allocatorHandle);
+        public ChangeListSerializedStructWritable(AllocatorManager.AllocatorHandle allocatorHandle) =>
+            m_Data = new(allocatorHandle);
 
-        public IEnumerator<EngineAndObjectData<TEngineData>> GetEnumerator() => new ChangeListManagedEnumerator<TEngineData>(m_data.AsArray(), m_data.Length);
+        public IEnumerator<EngineAndObjectData<TEngineData>> GetEnumerator() =>
+            new ChangeListManagedEnumerator<TEngineData>(m_Data.AsArray(), m_Data.Length);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -177,9 +184,9 @@ namespace Unity.PolySpatial.Entities
             var maxSize = serializer?.GetMaxSize(element) ?? 0;
 
             var size = PolySpatialUtils.PaddedIntSize + sizeof(PolySpatialChangeListEntityData) + maxSize;
-            var oldLength = m_data.Length;
-            m_data.Length += size;
-            var ptr = (int*)(m_data.GetUnsafePtr() + m_data.Length - size);
+            var oldLength = m_Data.Length;
+            m_Data.Length += size;
+            var ptr = (int*)(m_Data.GetUnsafePtr() + m_Data.Length - size);
             var obj = (PolySpatialChangeListEntityData*)((byte*)ptr + PolySpatialUtils.PaddedIntSize);
             *obj = new PolySpatialChangeListEntityData
             {
@@ -189,11 +196,11 @@ namespace Unity.PolySpatial.Entities
             var actualSize = serializer?.Write(new Span<byte>((byte*)(obj + 1), maxSize), element) ?? 0;
             actualSize += PolySpatialUtils.PaddedIntSize + sizeof(PolySpatialChangeListEntityData);
             *ptr = actualSize;
-            m_data.Length = oldLength + PolySpatialUtils.AlignSize(actualSize);
+            m_Data.Length = oldLength + PolySpatialUtils.AlignSize(actualSize);
         }
 
-        public void Clear() => m_data.Clear();
+        public void Clear() => m_Data.Clear();
 
-        public void Dispose() => m_data.Dispose();
+        public void Dispose() => m_Data.Dispose();
     }
 }

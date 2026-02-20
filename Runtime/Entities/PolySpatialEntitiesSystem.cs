@@ -16,6 +16,8 @@ using UnityEditor.PolySpatial.Analytics;
 
 namespace Unity.PolySpatial.Entities
 {
+    using NativePolySpatialInstanceIDList = NativePolySpatialIDList<long>;
+
     internal struct TrackedEntity : ICleanupComponentData { }
 
     internal struct TrackedMaterialMeshInfo : ICleanupComponentData { }
@@ -69,7 +71,7 @@ namespace Unity.PolySpatial.Entities
 
         private NewEntityData m_newEntityData;
 
-        private NativeList<PolySpatialInstanceID> m_removedEntityIds;
+        private NativePolySpatialInstanceIDList m_removedEntityIds;
 
         private NativePolySpatialInstanceIDList m_idBuffer;
         private NativeList<Vector3> m_positionBuffer;
@@ -80,7 +82,7 @@ namespace Unity.PolySpatial.Entities
 
         private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
         private ChangeListSerializedStructWritable<PolySpatialRenderData> m_materialMeshChanges;
-        private NativeList<PolySpatialInstanceID> m_materialMeshRemoved;
+        private NativePolySpatialInstanceIDList m_materialMeshRemoved;
 
         private static List<RenderMeshArray> m_renderMeshArraysBuffer;
         private static List<int> m_sharedIndicesBuffer;
@@ -166,7 +168,7 @@ namespace Unity.PolySpatial.Entities
             m_materialMeshTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
             m_materialMeshTrackerMap.Initialize(1024);
             m_materialMeshChanges = new ChangeListSerializedStructWritable<PolySpatialRenderData>(Allocator.Persistent);
-            m_materialMeshRemoved = new NativeList<PolySpatialInstanceID>(Allocator.Persistent);
+            m_materialMeshRemoved = new(Allocator.Persistent);
 
             m_renderMeshArraysBuffer = new List<RenderMeshArray>();
             m_sharedIndicesBuffer = new List<int>();
@@ -179,11 +181,11 @@ namespace Unity.PolySpatial.Entities
 
         public void OnUpdate(ref SystemState systemState)
         {
-            var sim = PolySpatialCore.UnitySimulation;
-            if (sim == null || sim.SessionState != SessionState.Running)
+            if (!PolySpatialRuntime.HasLocalSimulation)
                 return;
 
-            if (PolySpatialCore.LocalAssetManager == null)
+            var sim = PolySpatialCore.UnitySimulation;
+            if (sim.SessionState != SessionState.Running)
                 return;
 
             RegisterMaterialsAndMeshes(systemState.EntityManager);
@@ -278,7 +280,7 @@ namespace Unity.PolySpatial.Entities
             if (!m_newEntityData.ids.IsEmpty)
             {
                 sim.AddEntitiesWithTransforms(
-                    m_newEntityData.ids.AsPolySpatialInstanceIDSpan(),
+                    m_newEntityData.ids.AsIDSpan(),
                     m_newEntityData.parentIds.AsArray(),
                     m_newEntityData.positions.AsArray(),
                     m_newEntityData.rotations.AsArray(),
@@ -293,8 +295,8 @@ namespace Unity.PolySpatial.Entities
 
             if (!m_idBuffer.IsEmpty)
             {
-                sim.OnTransformsChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
-                sim.OnHierarchyChanged(m_idBuffer.AsPolySpatialInstanceIDSpan(), m_parentBuffer.AsArray());
+                sim.OnTransformsChanged(m_idBuffer.AsIDSpan(), m_positionBuffer.AsArray(), m_rotationBuffer.AsArray(), m_scaleBuffer.AsArray());
+                sim.OnHierarchyChanged(m_idBuffer.AsIDSpan(), m_parentBuffer.AsArray());
             }
 
             if (!m_materialMeshChanges.IsEmpty)
@@ -304,12 +306,12 @@ namespace Unity.PolySpatial.Entities
 
             if (!m_materialMeshRemoved.IsEmpty)
             {
-                sim.OnMeshRenderersDestroyed(m_materialMeshRemoved.AsArray());
+                sim.OnMeshRenderersDestroyed(m_materialMeshRemoved.AsIDSpan());
             }
 
             if (!m_removedEntityIds.IsEmpty)
             {
-                sim.OnGameObjectsDestroyed(m_removedEntityIds.AsArray());
+                sim.OnGameObjectsDestroyed(m_removedEntityIds.AsIDSpan());
             }
 
             m_newEntityData.Clear();
@@ -468,10 +470,18 @@ namespace Unity.PolySpatial.Entities
 
         private static void UnregisterMaterialsAndMeshesAndDispose(PolyRenderMeshArray polyRenderMeshArray)
         {
-            foreach (var id in polyRenderMeshArray.Materials)
-                PolySpatialCore.LocalAssetManager?.Unregister(id);
-            foreach (var id in polyRenderMeshArray.Meshes)
-                PolySpatialCore.LocalAssetManager?.Unregister(id);
+            var assetManager = PolySpatialCore.LocalAssetManager;
+            if (assetManager != null)
+            {
+                foreach (var id in polyRenderMeshArray.Materials)
+                {
+                    assetManager.Unregister(id);
+                }
+                foreach (var id in polyRenderMeshArray.Meshes)
+                {
+                    assetManager.Unregister(id);
+                }
+            }
             polyRenderMeshArray.Materials.Dispose();
             polyRenderMeshArray.Meshes.Dispose();
         }
@@ -527,7 +537,7 @@ namespace Unity.PolySpatial.Entities
         {
             public EntityCommandBuffer ECB;
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
-            public NativeList<PolySpatialInstanceID> EntitiesChanges;
+            public NativePolySpatialInstanceIDList EntitiesChanges;
 
             private void Execute(Entity e)
             {
@@ -619,7 +629,7 @@ namespace Unity.PolySpatial.Entities
             [ReadOnly] public EntityTypeHandle EntityType;
 
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
-            public NativeList<PolySpatialInstanceID> Changes;
+            public NativePolySpatialInstanceIDList Changes;
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
                 var entities = chunk.GetNativeArray(EntityType);

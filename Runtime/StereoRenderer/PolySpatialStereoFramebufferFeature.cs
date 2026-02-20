@@ -37,7 +37,7 @@ namespace Unity.PolySpatial.Extensions
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (!Application.isPlaying || PolySpatialCore.LocalAssetManager == null)
+            if (!Application.isPlaying || !PolySpatialRuntime.HasLocalSimulation)
                 return;
 
             var camera = renderingData.cameraData.camera;
@@ -110,7 +110,7 @@ namespace Unity.PolySpatial.Extensions
 
             EditorGUILayout.Space();
             EditorGUILayout.Separator();
-            var stereoRendererFramebuffers = FindObjectsByType<PolySpatialStereoFramebufferCamera>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+            var stereoRendererFramebuffers = ObjectExtensions.FindObjectsByType<PolySpatialStereoFramebufferCamera>(FindObjectsInactive.Include);
             var activeCount = 0;
             if (stereoRendererFramebuffers.Length > 0)
             {

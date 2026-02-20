@@ -113,7 +113,7 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
                 renderMeshArray,
                 MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
             entityManager.AddComponentData(prototype, new LocalToWorld());
-            var spawnedEntities = new NativeArray<Entity>(entityCount, Allocator.Persistent);
+            using var spawnedEntities = new NativeArray<Entity>(entityCount, Allocator.Persistent);
 
             // Spawn most of the entities in a Burst job by cloning a pre-created prototype entity,
             // which can be either a Prefab or an entity created at run time like in this sample.

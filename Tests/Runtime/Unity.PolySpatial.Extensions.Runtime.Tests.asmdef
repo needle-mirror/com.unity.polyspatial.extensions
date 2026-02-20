@@ -17,11 +17,11 @@
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
-        "Unity.PolySpatial.Core.dll"
+        "FlatSharp.Runtime.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [
