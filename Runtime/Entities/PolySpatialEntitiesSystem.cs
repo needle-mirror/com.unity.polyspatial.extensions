@@ -78,10 +78,10 @@ namespace Unity.PolySpatial.Entities
         private NativeList<Quaternion> m_rotationBuffer;
         private NativeList<Vector3> m_scaleBuffer;
         private NativeList<long> m_parentBuffer;
-        private ChangeListStructWritable<PolySpatialGameObjectData> m_entityChanges;
+        private ChangeList<PolySpatialGameObjectData>.Writable m_entityChanges;
 
         private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
-        private ChangeListSerializedStructWritable<PolySpatialRenderData> m_materialMeshChanges;
+        private ChangeListSerialized<PolySpatialRenderData>.Writable m_materialMeshChanges;
         private NativePolySpatialInstanceIDList m_materialMeshRemoved;
 
         private static List<RenderMeshArray> m_renderMeshArraysBuffer;
@@ -163,11 +163,11 @@ namespace Unity.PolySpatial.Entities
             m_rotationBuffer = new NativeList<Quaternion>(Allocator.Persistent);
             m_scaleBuffer = new NativeList<Vector3>(Allocator.Persistent);
             m_parentBuffer = new(Allocator.Persistent);
-            m_entityChanges = new ChangeListStructWritable<PolySpatialGameObjectData>(Allocator.Persistent);
+            m_entityChanges = new ChangeList<PolySpatialGameObjectData>.Writable(Allocator.Persistent);
 
             m_materialMeshTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
             m_materialMeshTrackerMap.Initialize(1024);
-            m_materialMeshChanges = new ChangeListSerializedStructWritable<PolySpatialRenderData>(Allocator.Persistent);
+            m_materialMeshChanges = new ChangeListSerialized<PolySpatialRenderData>.Writable(Allocator.Persistent);
             m_materialMeshRemoved = new(Allocator.Persistent);
 
             m_renderMeshArraysBuffer = new List<RenderMeshArray>();
@@ -464,7 +464,21 @@ namespace Unity.PolySpatial.Entities
             var sharedIndices = m_sharedIndicesBuffer;
             var sharedVersions = m_sharedVersionsBuffer;
 
+#if UNITY_6000_6_OR_NEWER
+            // Managed shared-component APIs are deprecated in 6000.6, where RenderMeshArray also became fully unmanaged.
+            // The non-managed overload omits versions, so reconstruct them from the shared component order version.
+            em.GetAllUniqueSharedComponents<RenderMeshArray>(out var values, out var indices, Allocator.Temp);
+            for (var i = 0; i < values.Length; ++i)
+            {
+                renderArrays.Add(values[i]);
+                sharedIndices.Add(indices[i]);
+                sharedVersions.Add(em.GetSharedComponentOrderVersion(values[i]));
+            }
+            values.Dispose();
+            indices.Dispose();
+#else
             em.GetAllUniqueSharedComponentsManaged(renderArrays, sharedIndices, sharedVersions);
+#endif
             return (renderArrays, sharedIndices, sharedVersions);
         }
 
@@ -522,8 +536,13 @@ namespace Unity.PolySpatial.Entities
                 NewEntityData.scales.Add(ltw.Value.Scale());
                 NewEntityData.data.Add(trackingData.customData);
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-                trackingData.SetName(e.ToString());
+#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
+#if !UNITY_6000_6_OR_NEWER
+                if (PolySpatialCore.IsEditorOrDevelopmentBuild)
+#endif
+                {
+                    trackingData.SetName(e.ToString());
+                }
 #endif
 
                 Assert.IsTrue(trackingData.GetLifecycleStage()==PolySpatialTrackingFlags.Created);
@@ -576,7 +595,7 @@ namespace Unity.PolySpatial.Entities
             [ReadOnly] public SharedComponentTypeHandle<RenderMeshArray> RenderMeshArray;
             public NativeParallelHashMap<int, PolyRenderMeshArray> PolyRenderMeshArrays;
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
-            public ChangeListSerializedStructWritable<PolySpatialRenderData> Changes;
+            public ChangeListSerialized<PolySpatialRenderData>.Writable Changes;
 
             [ReadOnly] public ComponentTypeHandle<MaterialMeshInfo> MaterialMeshInfoType;
             [ReadOnly] public EntityTypeHandle EntityType;
@@ -599,7 +618,7 @@ namespace Unity.PolySpatial.Entities
                     var e = entities[i];
                     ECB.AddComponent<TrackedMaterialMeshInfo>(e);
                     Assert.IsFalse(TrackerMap.IsIgnored(e));
-                    if(!TrackerMap.TryGetValueOrDefault(e, out var trackingData))
+                    if (!TrackerMap.TryGetValueOrDefault(e, out var trackingData))
                         trackingData.Initialize(PolySpatialInstanceID.For(PolySpatialEntitiesUtils.IdFor(e)), e);
                     var mmi = mmis[i];
                     trackingData.customData.meshId = polyRenderMeshArray.GetMeshID(mmi);
@@ -652,7 +671,7 @@ namespace Unity.PolySpatial.Entities
         {
             public EntityCommandBuffer ECB;
             public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> TrackerMap;
-            public ChangeListStructWritable<PolySpatialGameObjectData> Changes;
+            public ChangeList<PolySpatialGameObjectData>.Writable Changes;
             public bool visible;
 
             public void Execute(Entity e)

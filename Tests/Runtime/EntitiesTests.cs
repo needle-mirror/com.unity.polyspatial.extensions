@@ -69,6 +69,9 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
         /// </summary>
         /// <returns>The IEnumerator for the test runner</returns>
         [UnityTest]
+#if UNITY_6000_7_OR_NEWER
+        [Ignore("Fails due to an NRE in Entities package on trunk")]
+#endif
         public IEnumerator SpawnAndDestroyEntities()
         {
             // Need to wait a frame as PolySpatialEntitiesSystem.OnUpdate() is called before the first call to PolySpatialCore.PolySpatialAfterLateUpdate

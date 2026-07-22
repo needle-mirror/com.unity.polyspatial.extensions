@@ -20,7 +20,7 @@ namespace Unity.PolySpatial.Entities
         public PolySpatialInstanceID instanceId;
         public PolySpatialTrackingFlags trackingFlags;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
+#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
         // The name of this entity for debugging.
         public FixedString32Bytes name;
 #endif
@@ -33,14 +33,19 @@ namespace Unity.PolySpatial.Entities
         {
             instanceId = id;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-            name.SetAndTruncate(entity.ToString());
+#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
+#if !UNITY_6000_6_OR_NEWER
+            if (PolySpatialCore.IsEditorOrDevelopmentBuild)
+#endif
+            {
+                name.SetAndTruncate(entity.ToString());
+            }
 #endif
             trackingFlags.Initialize();
         }
 
         /// <summary>
-        /// Marks the data for destruction. Also validates internal consistency of flags in DEVELOPMENT_BUILDs
+        /// Marks the data for destruction. Also validates internal consistency of flags in builds with diagnostic checks enabled
         /// </summary>
         public void MarkForDestruction() => trackingFlags = PolySpatialTrackingFlags.Destroyed | PolySpatialTrackingFlags.Disabled | PolySpatialTrackingFlags.Inactive;
 
@@ -61,19 +66,19 @@ namespace Unity.PolySpatial.Entities
 
         /// <summary>
         /// Updates the enabled/disabled state of flags to isEnabled. Also validates internal
-        /// consistency of flags in DEVELOPMENT_BUILDs
+        /// consistency of flags in builds with diagnostic checks enabled
         /// </summary>
         public void SetActiveState(bool isActive) => trackingFlags.SetActiveState(isActive);
 
         /// <summary>
         /// Updates the enabled/disabled state of flags to isEnabled. Also validates internal
-        /// consistency of flags in DEVELOPMENT_BUILDs
+        /// consistency of flags in builds with diagnostic checks enabled
         /// </summary>
         public void SetEnabledState(bool isEnabled) => trackingFlags.SetEnabledState(isEnabled);
 
         /// <summary>
         /// Extracts and returns just the lifecycle flag from aggregated flags bitfield. Also validates internal
-        /// consistency of trackingFlags in DEVELOPMENT_BUILDs
+        /// consistency of trackingFlags in builds with diagnostic checks enabled
         /// </summary>
         public PolySpatialTrackingFlags GetLifecycleStage() => trackingFlags.GetLifecycleStage();
 
@@ -95,9 +100,13 @@ namespace Unity.PolySpatial.Entities
         private DefaultEntityTrackingData defaultData;
         public T customData;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
+#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
         // The name of this entity for debugging.
-        public void SetName(string name) => defaultData.name.SetAndTruncate(name);
+        public void SetName(string name)
+        {
+            // Skip IsEditorOrDevelopmentBuild check here: the caller will verify that instead.
+            defaultData.name.SetAndTruncate(name);
+        }
 #endif
 
         public bool IsDirty() => defaultData.trackingFlags.HasFlag(PolySpatialTrackingFlags.Dirty);
