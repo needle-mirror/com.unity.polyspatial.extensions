@@ -67,7 +67,7 @@ namespace Unity.PolySpatial.Entities
         private EntityQuery m_enableRenderingEntitiesQuery;
         private EntityQuery m_disableRenderingEntitiesQuery;
 
-        private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> m_entityTrackerMap;
+        private NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> m_entityTrackerMap;
 
         private NewEntityData m_newEntityData;
 
@@ -80,7 +80,7 @@ namespace Unity.PolySpatial.Entities
         private NativeList<long> m_parentBuffer;
         private ChangeList<PolySpatialGameObjectData>.Writable m_entityChanges;
 
-        private TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
+        private NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> m_materialMeshTrackerMap;
         private ChangeListSerialized<PolySpatialRenderData>.Writable m_materialMeshChanges;
         private NativePolySpatialInstanceIDList m_materialMeshRemoved;
 
@@ -151,7 +151,7 @@ namespace Unity.PolySpatial.Entities
                 All = new[] { ComponentType.ReadOnly<TrackedEntity>(), ComponentType.ReadOnly<MaterialMeshInfo>(), ComponentType.ReadOnly<DisableRendering>(), ComponentType.ReadOnly<TrackedRendering>() },
             });
 
-            m_entityTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>>();
+            m_entityTrackerMap = new NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>>();
             m_entityTrackerMap.Initialize(1024);
 
             m_newEntityData = new NewEntityData(Allocator.Persistent);
@@ -165,7 +165,7 @@ namespace Unity.PolySpatial.Entities
             m_parentBuffer = new(Allocator.Persistent);
             m_entityChanges = new ChangeList<PolySpatialGameObjectData>.Writable(Allocator.Persistent);
 
-            m_materialMeshTrackerMap = new TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
+            m_materialMeshTrackerMap = new NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>>();
             m_materialMeshTrackerMap.Initialize(1024);
             m_materialMeshChanges = new ChangeListSerialized<PolySpatialRenderData>.Writable(Allocator.Persistent);
             m_materialMeshRemoved = new(Allocator.Persistent);
@@ -508,7 +508,7 @@ namespace Unity.PolySpatial.Entities
         {
             public EntityCommandBuffer ECB;
 
-            public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
+            public NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
             public NewEntityData NewEntityData;
             public bool visible;
             private void Execute(Entity e, LocalToWorld ltw)
@@ -555,7 +555,7 @@ namespace Unity.PolySpatial.Entities
         private partial struct HandleRemovedEntitiesJob : IJobEntity
         {
             public EntityCommandBuffer ECB;
-            public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
+            public NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> EntityTrackerMap;
             public NativePolySpatialInstanceIDList EntitiesChanges;
 
             private void Execute(Entity e)
@@ -594,7 +594,7 @@ namespace Unity.PolySpatial.Entities
             public EntityCommandBuffer ECB;
             [ReadOnly] public SharedComponentTypeHandle<RenderMeshArray> RenderMeshArray;
             public NativeParallelHashMap<int, PolyRenderMeshArray> PolyRenderMeshArrays;
-            public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
+            public NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
             public ChangeListSerialized<PolySpatialRenderData>.Writable Changes;
 
             [ReadOnly] public ComponentTypeHandle<MaterialMeshInfo> MaterialMeshInfoType;
@@ -647,7 +647,7 @@ namespace Unity.PolySpatial.Entities
             public EntityCommandBuffer ECB;
             [ReadOnly] public EntityTypeHandle EntityType;
 
-            public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
+            public NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialMeshMaterialTrackingData>> TrackerMap;
             public NativePolySpatialInstanceIDList Changes;
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
@@ -670,7 +670,7 @@ namespace Unity.PolySpatial.Entities
         private partial struct SetEnableRenderingEntitiesJob : IJobEntity
         {
             public EntityCommandBuffer ECB;
-            public TrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> TrackerMap;
+            public NativeTrackerInstanceIdMap<Entity, EntityTrackingData<PolySpatialGameObjectData>> TrackerMap;
             public ChangeList<PolySpatialGameObjectData>.Writable Changes;
             public bool visible;
 
