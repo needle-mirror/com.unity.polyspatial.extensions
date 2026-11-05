@@ -1,3 +1,9 @@
+// Before 6000.6, ENABLE_PROFILER equals UNITY_EDITOR || DEVELOPMENT_BUILD.
+// On 6000.6+, DEVELOPMENT_BUILD is deprecated in favor of UNITY_INCLUDE_INSTRUMENTATION.
+#if !UNITY_6000_6_OR_NEWER && ENABLE_PROFILER
+#define UNITY_INCLUDE_INSTRUMENTATION
+#endif
+
 using Unity.Collections;
 using Unity.Entities;
 using Unity.PolySpatial.Internals;
@@ -12,34 +18,27 @@ namespace Unity.PolySpatial.Entities
 
     internal interface IEntityTrackingData : ITrackingData
     {
-        public void Initialize(PolySpatialInstanceID id, Entity entity);
+        public void Initialize(PolySpatialEntityID id, Entity entity);
     }
 
     internal struct DefaultEntityTrackingData : IEntityTrackingData
     {
-        public PolySpatialInstanceID instanceId;
+        public PolySpatialEntityID EntityId { get; set; }
         public PolySpatialTrackingFlags trackingFlags;
 
-#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
+#if UNITY_INCLUDE_INSTRUMENTATION
         // The name of this entity for debugging.
         public FixedString32Bytes name;
 #endif
 
-        public PolySpatialInstanceID InstanceId => instanceId;
+        public readonly PolySpatialTrackingFlags TrackingFlags => trackingFlags;
 
-        public PolySpatialTrackingFlags TrackingFlags => trackingFlags;
-
-        public void Initialize(PolySpatialInstanceID id, Entity entity)
+        public void Initialize(PolySpatialEntityID id, Entity entity)
         {
-            instanceId = id;
+            EntityId = id;
 
-#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
-#if !UNITY_6000_6_OR_NEWER
-            if (PolySpatialCore.IsEditorOrDevelopmentBuild)
-#endif
-            {
-                name.SetAndTruncate(entity.ToString());
-            }
+#if UNITY_INCLUDE_INSTRUMENTATION
+            name.SetAndTruncate(entity.ToString());
 #endif
             trackingFlags.Initialize();
         }
@@ -52,17 +51,17 @@ namespace Unity.PolySpatial.Entities
         /// <summary>
         /// Returns whether the content tracked by trackingFlags should currently be rendered due to GameObject active state
         /// </summary>
-        public bool IsActive() => trackingFlags.IsActive();
+        public readonly bool IsActive() => trackingFlags.IsActive();
 
         /// <summary>
         /// Returns whether the content tracked by trackingFlags should currently be rendered due to component enabled state
         /// </summary>
-        public bool IsEnabled() => trackingFlags.IsEnabled();
+        public readonly bool IsEnabled() => trackingFlags.IsEnabled();
 
         /// <summary>
         /// Returns whether the content tracked by trackingFlags should currently be rendered
         /// </summary>
-        public bool IsActiveAndEnabled() => trackingFlags.IsActiveAndEnabled();
+        public readonly bool IsActiveAndEnabled() => trackingFlags.IsActiveAndEnabled();
 
         /// <summary>
         /// Updates the enabled/disabled state of flags to isEnabled. Also validates internal
@@ -80,7 +79,7 @@ namespace Unity.PolySpatial.Entities
         /// Extracts and returns just the lifecycle flag from aggregated flags bitfield. Also validates internal
         /// consistency of trackingFlags in builds with diagnostic checks enabled
         /// </summary>
-        public PolySpatialTrackingFlags GetLifecycleStage() => trackingFlags.GetLifecycleStage();
+        public readonly PolySpatialTrackingFlags GetLifecycleStage() => trackingFlags.GetLifecycleStage();
 
         /// <summary>
         /// Changes the stage of flags to lifecycleStage. Does not perform full validation, but
@@ -92,7 +91,7 @@ namespace Unity.PolySpatial.Entities
         /// Validates the internal consistency of trackingFlags by ensuring it has only one lifecycleStage and that deallocated
         /// data is never being accessed
         /// </summary>
-        public bool ValidateTrackingFlags() => trackingFlags.Validate();
+        public readonly bool ValidateTrackingFlags() => trackingFlags.Validate();
     }
 
     internal struct EntityTrackingData<T> : IEntityTrackingData where T : unmanaged
@@ -100,32 +99,31 @@ namespace Unity.PolySpatial.Entities
         private DefaultEntityTrackingData defaultData;
         public T customData;
 
-#if !UNITY_6000_6_OR_NEWER || UNITY_INCLUDE_INSTRUMENTATION
+#if UNITY_INCLUDE_INSTRUMENTATION
         // The name of this entity for debugging.
         public void SetName(string name)
         {
-            // Skip IsEditorOrDevelopmentBuild check here: the caller will verify that instead.
             defaultData.name.SetAndTruncate(name);
         }
 #endif
 
-        public bool IsDirty() => defaultData.trackingFlags.HasFlag(PolySpatialTrackingFlags.Dirty);
+        public readonly bool IsDirty() => defaultData.trackingFlags.HasFlag(PolySpatialTrackingFlags.Dirty);
 
         public void MarkDirty() => defaultData.trackingFlags |= PolySpatialTrackingFlags.Dirty;
 
         public void MarkClean() => defaultData.trackingFlags &= ~PolySpatialTrackingFlags.Dirty;
 
-        public void Initialize(PolySpatialInstanceID id, Entity entity) => defaultData.Initialize(id, entity);
+        public void Initialize(PolySpatialEntityID id, Entity entity) => defaultData.Initialize(id, entity);
         public void MarkForDestruction() => defaultData.MarkForDestruction();
-        public bool IsActive() => defaultData.IsActive();
-        public bool IsEnabled() => defaultData.IsEnabled();
-        public bool IsActiveAndEnabled() => defaultData.IsActiveAndEnabled();
+        public readonly bool IsActive() => defaultData.IsActive();
+        public readonly bool IsEnabled() => defaultData.IsEnabled();
+        public readonly bool IsActiveAndEnabled() => defaultData.IsActiveAndEnabled();
         public void SetActiveState(bool isActive) => defaultData.SetActiveState(isActive);
         public void SetEnabledState(bool isEnabled) => defaultData.SetEnabledState(isEnabled);
-        public PolySpatialTrackingFlags GetLifecycleStage() => defaultData.GetLifecycleStage();
+        public readonly PolySpatialTrackingFlags GetLifecycleStage() => defaultData.GetLifecycleStage();
         public void SetLifecycleStage(PolySpatialTrackingFlags value) => defaultData.SetLifecycleStage(value);
-        public bool ValidateTrackingFlags() => defaultData.ValidateTrackingFlags();
-        public PolySpatialInstanceID InstanceId => defaultData.InstanceId;
-        public PolySpatialTrackingFlags TrackingFlags => defaultData.TrackingFlags;
+        public readonly bool ValidateTrackingFlags() => defaultData.ValidateTrackingFlags();
+        public readonly PolySpatialEntityID EntityId => defaultData.EntityId;
+        public readonly PolySpatialTrackingFlags TrackingFlags => defaultData.TrackingFlags;
     }
 }

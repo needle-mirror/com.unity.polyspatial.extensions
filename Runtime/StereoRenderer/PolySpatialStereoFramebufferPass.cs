@@ -49,7 +49,6 @@ namespace Unity.PolySpatial.Extensions
 
             internal readonly Vector2Int GBufferDimensions;
             internal readonly Vector2Int Dimensions;
-            internal readonly PolySpatialInstanceID InstanceID;
             internal readonly FramebufferMode FramebufferMode;
             internal readonly PolySpatialStereoFramebufferCamera StereoFramebufferCamera;
 

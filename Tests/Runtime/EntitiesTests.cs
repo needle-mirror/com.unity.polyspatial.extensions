@@ -83,8 +83,12 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
             var previousPlayerLoop = PlayerLoop.GetCurrentPlayerLoop();
             PlayerLoop.SetPlayerLoop(PlayerLoop.GetDefaultPlayerLoop());
 
+#if UNITY_7000_0_OR_NEWER
+            var world = new World("Test World");
+#else
             var previousWorld = World.DefaultGameObjectInjectionWorld;
             var world = World.DefaultGameObjectInjectionWorld = new World("Test World");
+#endif
             world.UpdateAllocatorEnableBlockFree = true;
 
             // Many ECS tests will only pass if the Jobs Debugger enabled;
@@ -92,78 +96,88 @@ namespace Unity.PolySpatial.Extensions.RuntimeTests
             var jobsDebuggerWasEnabled = JobsUtility.JobDebuggerEnabled;
             JobsUtility.JobDebuggerEnabled = true;
 
-            var entityManager = world.EntityManager;
-            var ecb = new EntityCommandBuffer(Allocator.TempJob);
+            bool errorsWhileDestroyingSystems;
 
-            // Create a RenderMeshDescription using the convenience constructor
-            // with named parameters.
-            var desc = new RenderMeshDescription(
-                shadowCastingMode: ShadowCastingMode.Off,
-                receiveShadows: false);
-
-            // Create an array of mesh and material required for runtime rendering.
-            var renderMeshArray = new RenderMeshArray(new Material[] { material }, new Mesh[] { mesh });
-
-            // Create empty base entity
-            var prototype = entityManager.CreateEntity();
-
-            // Call AddComponents to populate base entity with the components required
-            // by Entities Graphics
-            RenderMeshUtility.AddComponents(
-                prototype,
-                entityManager,
-                desc,
-                renderMeshArray,
-                MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
-            entityManager.AddComponentData(prototype, new LocalToWorld());
-            using var spawnedEntities = new NativeArray<Entity>(entityCount, Allocator.Persistent);
-
-            // Spawn most of the entities in a Burst job by cloning a pre-created prototype entity,
-            // which can be either a Prefab or an entity created at run time like in this sample.
-            // This is the fastest and most efficient way to create entities at run time.
-            var spawnJob = new SpawnJob
+#if UNITY_7000_0_OR_NEWER
+            using (new World.ActiveWorldScope(world))
+#endif
             {
-                Prototype = prototype,
-                Ecb = ecb.AsParallelWriter(),
-                EntityArray = spawnedEntities
-            };
+                var entityManager = world.EntityManager;
+                var ecb = new EntityCommandBuffer(Allocator.TempJob);
 
-            var spawnHandle = spawnJob.Schedule(entityCount, 1);
-            spawnHandle.Complete();
+                // Create a RenderMeshDescription using the convenience constructor
+                // with named parameters.
+                var desc = new RenderMeshDescription(
+                    shadowCastingMode: ShadowCastingMode.Off,
+                    receiveShadows: false);
 
-            yield return null;
+                // Create an array of mesh and material required for runtime rendering.
+                var renderMeshArray = new RenderMeshArray(new Material[] { material }, new Mesh[] { mesh });
 
-            for (var i = 0; i < entityCount; i++)
-            {
-                Debug.Log(spawnedEntities[i].Version);
-                Assert.IsTrue(PolySpatialEntitiesUtils.IdFor(spawnedEntities[i]) != PolySpatialInstanceID.None.id);
+                // Create empty base entity
+                var prototype = entityManager.CreateEntity();
+
+                // Call AddComponents to populate base entity with the components required
+                // by Entities Graphics
+                RenderMeshUtility.AddComponents(
+                    prototype,
+                    entityManager,
+                    desc,
+                    renderMeshArray,
+                    MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
+                entityManager.AddComponentData(prototype, new LocalToWorld());
+                using var spawnedEntities = new NativeArray<Entity>(entityCount, Allocator.Persistent);
+
+                // Spawn most of the entities in a Burst job by cloning a pre-created prototype entity,
+                // which can be either a Prefab or an entity created at run time like in this sample.
+                // This is the fastest and most efficient way to create entities at run time.
+                var spawnJob = new SpawnJob
+                {
+                    Prototype = prototype,
+                    Ecb = ecb.AsParallelWriter(),
+                    EntityArray = spawnedEntities
+                };
+
+                var spawnHandle = spawnJob.Schedule(entityCount, 1);
+                spawnHandle.Complete();
+
+                yield return null;
+
+                for (var i = 0; i < entityCount; i++)
+                {
+                    Debug.Log(spawnedEntities[i].Version);
+                    Assert.IsTrue(PolySpatialEntitiesUtils.IdFor(spawnedEntities[i]) != PolySpatialEntityID.None);
+                }
+
+                var destroyJob = new DestroyEntitiesJob
+                {
+                    Ecb = ecb.AsParallelWriter(),
+                    EntityArray = spawnedEntities
+                };
+
+                var destroyHandle = destroyJob.Schedule(entityCount, 1, spawnHandle);
+                destroyHandle.Complete();
+
+                // For some reason this line causes Invalid Entity Version exceptions, but seems to function fine without it.
+                //ecb.Playback(entityManager);
+                ecb.Dispose();
+                entityManager.DestroyEntity(prototype);
+
+                entityManager.CompleteAllTrackedJobs();
+
+                world.DestroyAllSystemsAndLogException(out errorsWhileDestroyingSystems);
             }
 
-            var destroyJob = new DestroyEntitiesJob
-            {
-                Ecb = ecb.AsParallelWriter(),
-                EntityArray = spawnedEntities
-            };
-
-            var destroyHandle = destroyJob.Schedule(entityCount, 1, spawnHandle);
-            destroyHandle.Complete();
-
-            // For some reason this line causes Invalid Entity Version exceptions, but seems to function fine without it.
-            //ecb.Playback(entityManager);
-            ecb.Dispose();
-            entityManager.DestroyEntity(prototype);
-
-            entityManager.CompleteAllTrackedJobs();
-
-            world.DestroyAllSystemsAndLogException(out bool errorsWhileDestroyingSystems);
+            world.Dispose();
             Assert.IsFalse(errorsWhileDestroyingSystems,
                 "One or more exceptions were thrown while destroying systems during test teardown; consult the log for details.");
 
-            world.Dispose();
             yield return null;
 
             JobsUtility.JobDebuggerEnabled = jobsDebuggerWasEnabled;
+#if !UNITY_7000_0_OR_NEWER
             World.DefaultGameObjectInjectionWorld = previousWorld;
+#endif
             PlayerLoop.SetPlayerLoop(previousPlayerLoop);
         }
     }
